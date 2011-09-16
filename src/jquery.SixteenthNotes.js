@@ -58,12 +58,15 @@
                     mins = Math.floor(rem/60,10),
                     secs = rem - mins*60;
 
+                    $('#barwrapper', element).slider('option', 'max', audio.duration);
+
+
                     timeleft.text('-' + mins + ':' + (secs > 9 ? secs : '0' + secs));
                     tracktitle.text(element.attr('title'));
                     if (!manualSeek) { positionIndicator.css({left: pos + '%'}); }
                     if (!loaded) {
                         loaded = true;
-                        $('#barwrapper').slider({
+                        $('#barwrapper', element).slider({
                           value: 0,
                           step: 0.01,
                           orientation: 'horizontal',
@@ -87,6 +90,41 @@
                 }).bind('pause ended', function() {
                     $("#playpause").removeClass('playing');    
                 });   
+
+                $(audio).bind('ended', function() {
+                    $.each(options.tracks, function(index, track) {
+                        if(track.name == element.attr('title')) {
+                            var change = 0;
+
+                            differentTypes = [];
+
+                            $('source', element).remove();
+                            
+                            if((index + 1) == options.tracks.length) {
+                                change = -index;
+                            } else {
+                                change = 1;
+                            }
+                            $.each(options.trackFileTypes, function(i, type) {
+                                differentTypes.push(
+                                    '<source src="' + options.trackBaseDirectory + '/' + options.tracks[index+change].file + '.' + type + '" type="' + typeTranslationTable[type] + '"></source>'
+                                );
+
+                            });
+
+                            $('audio', element).html(differentTypes.join(''));
+
+                            element.attr('title', options.tracks[index+change].name);
+                            tracktitle.text(options.tracks[index+change].name);
+
+                            $('#barwrapper', element).slider('option', 'max', audio.duration);
+                            $('#barwrapper', element).slider('option', 'value', 0);
+
+                            return false;
+                        }
+                    });
+
+                });
     
                 $("#playpause").click(function() {     
                     if (audio.paused) { audio.play(); } 
@@ -96,24 +134,33 @@
                 $("#next").click(function() {
                     $.each(options.tracks, function(index, track) {
                         if(track.name == element.attr('title')) {
+                            var change = 0;
 
                             differentTypes = [];
-                            console.log(options.tracks[1].file);
 
                             $('source', element).remove();
-
+                            
+                            if((index + 1) == options.tracks.length) {
+                                change = -index;
+                            } else {
+                                change = 1;
+                            }
                             $.each(options.trackFileTypes, function(i, type) {
-                                console.log(index);
                                 differentTypes.push(
-                                    '<source src="' + options.trackBaseDirectory + '/' + options.tracks[index+1].file + '.' + type + '" type="' + typeTranslationTable[type] + '"></source>'
+                                    '<source src="' + options.trackBaseDirectory + '/' + options.tracks[index+change].file + '.' + type + '" type="' + typeTranslationTable[type] + '"></source>'
                                 );
 
                             });
 
                             $('audio', element).html(differentTypes.join(''));
 
-                            element.attr('title', options.tracks[index+1].name);
-                            tracktitle.text(options.tracks[index+1].name);
+                            element.attr('title', options.tracks[index+change].name);
+                            tracktitle.text(options.tracks[index+change].name);
+
+                            $('#barwrapper', element).slider('option', 'max', audio.duration);
+                            $('#barwrapper', element).slider('option', 'value', 0);
+
+                            return false;
                         }
                     });
                 });
