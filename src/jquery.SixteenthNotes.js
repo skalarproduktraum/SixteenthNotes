@@ -211,6 +211,10 @@
                     });
                 });
 
+                if(options.autoplay) {
+                    $('#playpause').trigger('click');
+                }
+
             } else {
                 // fallback code
             }
@@ -237,7 +241,8 @@
         'tracks' : [{'name' : '', 'file': ''}],
         'trackFileTypes' : ['ogg', 'mp3', 'wav'],
         'repeatMode': 'repeatAll',
-        'crossfade': 'false'
+        'crossfade': 'false',
+        'autoplay': 'false'
     };
 
 
