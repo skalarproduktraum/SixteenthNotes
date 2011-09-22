@@ -38,6 +38,7 @@
                 positionIndicator = $('#handle', element);
                 timeleft = $('#timeleft', element);
                 tracktitle = $('#tracktitle', element);
+                cover = $('#cover', element);
 
                 element.attr('title', options.tracks[0].name);
 
@@ -116,6 +117,7 @@
 
                             element.attr('title', options.tracks[index+change].name);
                             tracktitle.text(options.tracks[index+change].name);
+                            cover.css('background-image', 'url(' + options.trackBaseDirectory + '/' + options.tracks[index+change].cover + ')');
 
                             $('#barwrapper', element).slider('option', 'max', audio.duration);
                             $('#barwrapper', element).slider('option', 'value', 0);
@@ -126,12 +128,12 @@
 
                 });
     
-                $("#playpause").click(function() {     
-                    if (audio.paused) { audio.play(); } 
-                    else { audio.pause(); }     
+                $('#playpause').click(function() {     
+                    if (audio.paused) { $('#playpause').removeClass('pause'); $('#playpause').addClass('play'); audio.play(); } 
+                    else { $('#playpause').removeClass('play'); $('#playpause').addClass('pause'); audio.pause();  }     
                 });
 
-                $("#next").click(function() {
+                $('#next').click(function() {
                     $.each(options.tracks, function(index, track) {
                         if(track.name == element.attr('title')) {
                             var change = 0;
@@ -156,6 +158,8 @@
 
                             element.attr('title', options.tracks[index+change].name);
                             tracktitle.text(options.tracks[index+change].name);
+                            cover.css('background-image', 'url(' + options.trackBaseDirectory + '/' + options.tracks[index+change].cover + ')');
+
 
                             $('#barwrapper', element).slider('option', 'max', audio.duration);
                             $('#barwrapper', element).slider('option', 'value', 0);
@@ -164,6 +168,49 @@
                         }
                     });
                 });
+                
+                $('#previous').click(function() {
+
+                    if(audio.currentTime >= 10.0) {
+                        audio.currentTime = 0.0;
+                        return;
+                    }
+
+                    $.each(options.tracks, function(index, track) {
+                        if(track.name == element.attr('title')) {
+                            var change = 0;
+
+                            differentTypes = [];
+
+                            $('source', element).remove();
+                            
+                            if((index - 1) == -1) {
+                                change = options.tracks.length-1;
+                            } else {
+                                change = -1;
+                            }
+                            $.each(options.trackFileTypes, function(i, type) {
+                                differentTypes.push(
+                                    '<source src="' + options.trackBaseDirectory + '/' + options.tracks[index+change].file + '.' + type + '" type="' + typeTranslationTable[type] + '"></source>'
+                                );
+
+                            });
+
+                            $('audio', element).html(differentTypes.join(''));
+
+                            element.attr('title', options.tracks[index+change].name);
+                            tracktitle.text(options.tracks[index+change].name);
+                            cover.css('background-image', 'url(' + options.trackBaseDirectory + '/' + options.tracks[index+change].cover + ')');
+
+
+                            $('#barwrapper', element).slider('option', 'max', audio.duration);
+                            $('#barwrapper', element).slider('option', 'value', 0);
+
+                            return false;
+                        }
+                    });
+                });
+
             } else {
                 // fallback code
             }
