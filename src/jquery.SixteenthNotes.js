@@ -22,45 +22,45 @@
 
             // check if HTML5 audio support is implemented in the browser
             if(!!document.createElement('audio').canPlayType) {
-                var differentTypes = [];
-                // for each type we want, append one source tag to the audio tag of $element
-                $.each(options.trackFileTypes, function(i, type) {
-                    differentTypes.push(
-                        '<source src="' + options.trackBaseDirectory + '/' + options.tracks[0].file + '.' + type + '" type="' + typeTranslationTable[type] + '"></source>'
-                    );
-                });
-                $('<audio/>', {
-                    html: differentTypes.join('')
-                }).appendTo(element);
 
-                audio = element.children('audio').get(0);
-                loadingIndicator = $('#loading', element);
-                positionIndicator = $('#handle', element);
-                timeleft = $('#timeleft', element);
-                tracktitle = $('#tracktitle', element);
-                cover = $('#cover', element);
-
-                element.attr('title', options.tracks[0].name);
-
-                if ((audio.buffered != undefined) && (audio.buffered.length != 0)) {
-                    $(audio).bind('progress', function() {
-                        var loaded = parseInt(((audio.buffered.end(0) / audio.duration) * 100), 10);
-                        loadingIndicator.css({width: loaded + '%'});
+                var createAudioElement = function(playlistIndex) {
+                     var differentTypes = [];
+                    // for each type we want, append one source tag to the audio tag of $element
+                    $.each(options.trackFileTypes, function(i, type) {
+                        differentTypes.push(
+                            '<source src="' + options.trackBaseDirectory + '/' + options.tracks[playlistIndex].file + '.' + type + '" type="' + typeTranslationTable[type] + '"></source>'
+                        );
                     });
-                }
-                else {
-                    loadingIndicator.remove();
-                }
+                    $('<audio/>', {
+                        html: differentTypes.join('')
+                    }).appendTo(element);
+                    return element.children('audio').get(0);
+                };
 
+                var destroyAudioElement = function () {
+                    $('source', element).remove();
+                    $('audio', element).remove();
+                };
 
-                $(audio).bind('timeupdate', function() {
+                var resetSlider = function() {
+                     $('#barwrapper', element).slider('option', 'max', audio.duration);
+                     $('#barwrapper', element).slider('option', 'value', 0);
+                };
+
+                var updateSongTitle = function(playlistIndex) {
+                    element.attr('title', options.tracks[playlistIndex].name);
+                    tracktitle.text(options.tracks[playlistIndex].name);
+                    cover.css('background-image', 'url(' + options.trackBaseDirectory + '/' + options.tracks[playlistIndex].cover + ')');
+                };
+
+                var bindTimeUpdate = function() {
+                    $(audio).bind('timeupdate', function() {
                     var rem = parseInt(audio.duration - audio.currentTime, 10),
                     pos = (audio.currentTime / audio.duration) * 100,
                     mins = Math.floor(rem/60,10),
                     secs = rem - mins*60;
 
                     $('#barwrapper', element).slider('option', 'max', audio.duration);
-
 
                     timeleft.text('-' + mins + ':' + (secs > 9 ? secs : '0' + secs));
                     tracktitle.text(element.attr('title'));
@@ -85,49 +85,73 @@
                     }
 
                 });
+                };
 
-                $(audio).bind('play',function() {
-                    $("#playpause").addClass('playing');   
-                }).bind('pause ended', function() {
-                    $("#playpause").removeClass('playing');    
-                });   
-
-                $(audio).bind('ended', function() {
-                    $.each(options.tracks, function(index, track) {
-                        if(track.name == element.attr('title')) {
-                            var change = 0;
-
-                            differentTypes = [];
-
-                            $('source', element).remove();
+                var bindEnded = function() {
+                    $(audio).bind('ended', function() {
+                        $.each(options.tracks, function(index, track) {
+                            if(track.name == element.attr('title')) {
+                                var change = 0;
+                                destroyAudioElement();
                             
-                            if((index + 1) == options.tracks.length) {
-                                change = -index;
-                            } else {
-                                change = 1;
+                                if((index + 1) == options.tracks.length) {
+                                    change = -index;
+                                } else {
+                                    change = 1;
+                                }
+                                console.log(index, change); 
+                                audio = createAudioElement(index+change);
+                                rebind();
+
+                                updateSongTitle(index+change);
+                                resetSlider();
+
+                                audio.play();
+
+                                return false;
                             }
-                            $.each(options.trackFileTypes, function(i, type) {
-                                differentTypes.push(
-                                    '<source src="' + options.trackBaseDirectory + '/' + options.tracks[index+change].file + '.' + type + '" type="' + typeTranslationTable[type] + '"></source>'
-                                );
-
-                            });
-
-                            $('audio', element).html(differentTypes.join(''));
-
-                            element.attr('title', options.tracks[index+change].name);
-                            tracktitle.text(options.tracks[index+change].name);
-                            cover.css('background-image', 'url(' + options.trackBaseDirectory + '/' + options.tracks[index+change].cover + ')');
-
-                            $('#barwrapper', element).slider('option', 'max', audio.duration);
-                            $('#barwrapper', element).slider('option', 'value', 0);
-
-                            return false;
-                        }
+                        });
                     });
 
-                });
-    
+                };
+
+                var bindPlayingEvents = function() {
+                    $(audio).bind('play',function() {
+                        $("#playpause").addClass('playing');   
+                    }).bind('pause ended', function() {
+                        $("#playpause").removeClass('playing');    
+                    });
+                };
+
+                var rebind = function() {
+                    bindTimeUpdate();
+                    bindEnded();
+                    bindPlayingEvents();
+                }
+
+                audio = createAudioElement(0);
+                loadingIndicator = $('#loading', element);
+                positionIndicator = $('#handle', element);
+                timeleft = $('#timeleft', element);
+                tracktitle = $('#tracktitle', element);
+                cover = $('#cover', element);
+
+                element.attr('title', options.tracks[0].name);
+
+                if ((audio.buffered != undefined) && (audio.buffered.length != 0)) {
+                    $(audio).bind('progress', function() {
+                        var loaded = parseInt(((audio.buffered.end(0) / audio.duration) * 100), 10);
+                        loadingIndicator.css({width: loaded + '%'});
+                    });
+                }
+                else {
+                    loadingIndicator.remove();
+                }
+
+                bindEnded();
+                bindTimeUpdate();
+                bindPlayingEvents();
+
                 $('#playpause').click(function() {     
                     if (audio.paused) { $('#playpause').removeClass('pause'); $('#playpause').addClass('play'); audio.play(); } 
                     else { $('#playpause').removeClass('play'); $('#playpause').addClass('pause'); audio.pause();  }     
@@ -139,37 +163,20 @@
                     $.each(options.tracks, function(index, track) {
                         if(track.name == element.attr('title')) {
                             var change = 0;
-
-                            differentTypes = [];
-                            
-                            $('source', element).remove();
+                            destroyAudioElement();
                             
                             if((index + 1) == options.tracks.length) {
                                 change = -index;
                             } else {
                                 change = 1;
                             }
-                            $.each(options.trackFileTypes, function(i, type) {
-                                differentTypes.push(
-                                    '<source src="' + options.trackBaseDirectory + '/' + options.tracks[index+change].file + '.' + type + '" type="' + typeTranslationTable[type] + '"></source>'
-                                );
 
-                            });
+                            audio = createAudioElement(index+change);
+                            rebind();
 
-                            //$(audio).html(differentTypes.join(''));
-                            $('<audio/>', {
-                                html: differentTypes.join('')
-                            }).appendTo(element);
+                            updateSongTitle(index+change);
+                            resetSlider();
 
-                            element.attr('title', options.tracks[index+change].name);
-                            tracktitle.text(options.tracks[index+change].name);
-                            cover.css('background-image', 'url(' + options.trackBaseDirectory + '/' + options.tracks[index+change].cover + ')');
-
-
-                            $('#barwrapper', element).slider('option', 'max', audio.duration);
-                            $('#barwrapper', element).slider('option', 'value', 0);
-
-                            audio = element.children('audio').get(0);
                             audio.play();
 
                             return false;
@@ -188,31 +195,21 @@
                         if(track.name == element.attr('title')) {
                             var change = 0;
 
-                            differentTypes = [];
+                            destroyAudioElement();
 
-                            $('source', element).remove();
-                            
                             if((index - 1) == -1) {
                                 change = options.tracks.length-1;
                             } else {
                                 change = -1;
                             }
-                            $.each(options.trackFileTypes, function(i, type) {
-                                differentTypes.push(
-                                    '<source src="' + options.trackBaseDirectory + '/' + options.tracks[index+change].file + '.' + type + '" type="' + typeTranslationTable[type] + '"></source>'
-                                );
 
-                            });
+                            audio = createAudioElement(index+change);
+                            rebind();
+                            
+                            updateSongTitle(index+change);
+                            resetSlider();
 
-                            $('audio', element).html(differentTypes.join(''));
-
-                            element.attr('title', options.tracks[index+change].name);
-                            tracktitle.text(options.tracks[index+change].name);
-                            cover.css('background-image', 'url(' + options.trackBaseDirectory + '/' + options.tracks[index+change].cover + ')');
-
-
-                            $('#barwrapper', element).slider('option', 'max', audio.duration);
-                            $('#barwrapper', element).slider('option', 'value', 0);
+                            audio.play();
 
                             return false;
                         }
@@ -238,7 +235,9 @@
                     };
 
                     window.onYouTubePlayerReady = function(playerId) {
-                        document.getElementById(playerId).addEventListener("onStateChange", "ytControlFunction");
+                        var player = document.getElementById(playerId);
+                        player.addEventListener("onStateChange", "ytControlFunction");
+                        window[playerId] = player;
                     };
                 }
 
