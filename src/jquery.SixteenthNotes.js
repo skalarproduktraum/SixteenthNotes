@@ -222,7 +222,7 @@
                 if(options.autoplay) {
                     $('#playpause').trigger('click');
                 }
-                console.log(options.stopOnPlayingYouTubeVideo.length);
+
                 if(options.stopOnPlayingYouTubeVideo.length > 0) {
                     window.ytControlFunction = function(newState) {
                         // stop the audio player when YouTube video is started
