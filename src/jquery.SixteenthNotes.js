@@ -134,12 +134,14 @@
                 });
 
                 $('#next').click(function() {
+                    audio.pause();
+                    $('audio', element).remove();
                     $.each(options.tracks, function(index, track) {
                         if(track.name == element.attr('title')) {
                             var change = 0;
 
                             differentTypes = [];
-
+                            
                             $('source', element).remove();
                             
                             if((index + 1) == options.tracks.length) {
@@ -154,7 +156,10 @@
 
                             });
 
-                            $('audio', element).html(differentTypes.join(''));
+                            //$(audio).html(differentTypes.join(''));
+                            $('<audio/>', {
+                                html: differentTypes.join('')
+                            }).appendTo(element);
 
                             element.attr('title', options.tracks[index+change].name);
                             tracktitle.text(options.tracks[index+change].name);
@@ -163,6 +168,9 @@
 
                             $('#barwrapper', element).slider('option', 'max', audio.duration);
                             $('#barwrapper', element).slider('option', 'value', 0);
+
+                            audio = element.children('audio').get(0);
+                            audio.play();
 
                             return false;
                         }
@@ -214,6 +222,25 @@
                 if(options.autoplay) {
                     $('#playpause').trigger('click');
                 }
+                console.log(options.stopOnPlayingYouTubeVideo.length);
+                if(options.stopOnPlayingYouTubeVideo.length > 0) {
+                    window.ytControlFunction = function(newState) {
+                        // stop the audio player when YouTube video is started
+                        if(!audio.paused && newState == 1) {
+                            window.sixteenthNotesWasPlaying = true;
+                            $('#playpause').trigger('click');
+                        }
+
+                        // resume playing if sixteenthnotes was playing before
+                        if(newState == 0 && window.sixteenthNotesWasPlaying == true) {
+                            $('#playpause').trigger('click');
+                        }
+                    };
+
+                    window.onYouTubePlayerReady = function(playerId) {
+                        document.getElementById(playerId).addEventListener("onStateChange", "ytControlFunction");
+                    };
+                }
 
             } else {
                 // fallback code
@@ -242,7 +269,8 @@
         'trackFileTypes' : ['ogg', 'mp3', 'wav'],
         'repeatMode': 'repeatAll',
         'crossfade': 'false',
-        'autoplay': 'false'
+        'autoplay': 'false',
+        'stopOnPlayingYouTubeVideo': []
     };
 
 
